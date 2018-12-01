@@ -1,8 +1,75 @@
 ---
-title: "final_report_template"
-author: "me"
-date: "December 1, 2018"
-output: html_document
+title: "Variance Reduction for Estimating Value at Risk"
+subtitle: "STAT 428 FA2018 - Group #18"
+abstract: |
+          |This project is focusing on applying methods learned from class in real life financial case. (need adding more sentences)"
+author:
+  - Haowen Zhou (haowenz4)
+  - Qilan Zhang (qilanz2)
+  - Jiahui Zhao (jzhao71)
+  - Shanxin Zhou (shanxin2)
+  - Shuaiqi Zheng (szheng25)
+bibliography: bibliography.bib
+output: 
+  bookdown::pdf_document2
+  
+always_allow_html: yes
 ---
 
-# This is the template for group final report
+```{r set-options, include = FALSE}
+# set default code options
+knitr::opts_chunk$set(
+  # center images
+  fig.align = "center", 
+  # to display code set to True
+  echo = FALSE,
+  # suppress message
+  message = FALSE,
+  # supress warning
+  warning = FALSE
+)
+```
+
+```{r install-and-load-packages, include = FALSE}
+# require packages
+pkg_list = c('knitr', 'kableExtra', 'magrittr', 'bookdown')
+# check install
+to_install_pkgs = pkg_list[!(pkg_list %in% installed.packages()[,"Package"])]
+# install missing packages
+if(length(to_install_pkgs)) {
+  install.packages(to_install_pkgs, repos = "https://cloud.r-project.org")
+}
+# load all packages
+sapply(pkg_list, require, character.only = TRUE)
+```
+
+<!-- Force a new page -->
+\newpage
+
+# Introduction
+It is important for banks and insurance companies to estimate and manage the risk to avoid the situation when there is capital deficiency. Value at Risk (VAR) is a measure for the risk of investments loss, which estimates how much value a investment portfolio might lose at given market conditions. Two types of problems are often encompassed by acompany when measuring the risk.The first one is how the value of market risk will change according to risk factors (e.g. interest rate). The other one is what in fluence the risk will pose on the value of a portfolio. This project is intended to develope a model to revalue the portfolio with the interest rate by starting from the simple linear assumption to quadratic model and make use of revalued portfolio to estimate Value at Risk(VAR). The technique problem we are facing is how to make our estimate much more precise,which means we should do variance reduction for our estimator of VAR.
+
+**About the data**
+
+# Methods 
+
+<!-- Force a new page for references -->
+\newpage
+
+# Result
+# Discussion
+
+<!-- Force a new page for references -->
+\newpage
+
+# Conclusion
+# Appendix
+
+<!-- Force a new page for references -->
+\newpage
+
+# Bibliography
+
+delete the below code when finish
+<!-- Force a new page for references -->
+\newpage
