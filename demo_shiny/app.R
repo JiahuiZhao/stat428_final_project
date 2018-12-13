@@ -36,7 +36,7 @@ server = function(input, output) {
     a = matrix(as.numeric(str_split(input$capitala, pattern = ",")[[1]]), 2)
     a0 = as.numeric(input$capitala0)
 
-    set.seed(1)
+    set.seed(1234)
     
     Interest <- read.csv("Interest.csv", header = TRUE)
     Bond <- read.csv("Bond.csv", header = TRUE)
@@ -52,7 +52,7 @@ server = function(input, output) {
     Sigma <- cov(data.frame(delta_Bond,delta_Interest))
     Sigma <- as.matrix(Sigma)
     
-    set.seed(1)
+    set.seed(1234)
 
     Delta_S <- Multi_Normal(matrix(c(0,0),ncol=1), Sigma)
 
@@ -84,7 +84,7 @@ server = function(input, output) {
     a = matrix(as.numeric(str_split(input$capitala, pattern = ",")[[1]]), 2)
     a0 = as.numeric(input$capitala0)
     
-    set.seed(1)
+    set.seed(12)
     Interest <- read.csv("Interest.csv", header = TRUE)
     Bond <- read.csv("Bond.csv", header = TRUE)
     Bond <- Bond[c(625:688),2]
@@ -96,7 +96,7 @@ server = function(input, output) {
       delta_Interest[i-1] <- Interest[i] - Interest[i-1]
     }
     
-    set.seed(1)
+    set.seed(12)
     Sigma <- cov(data.frame(delta_Bond,delta_Interest))
     Sigma <- as.matrix(Sigma)
     Delta_S <- Multi_Normal(matrix(c(0,0),ncol=1), Sigma)
@@ -108,7 +108,7 @@ server = function(input, output) {
     a = matrix(as.numeric(str_split(input$capitala, pattern = ",")[[1]]), 2)
     a0 = as.numeric(input$capitala0)
     
-    set.seed(1)
+    set.seed(1234)
     Interest <- read.csv("Interest.csv", header = TRUE)
     Bond <- read.csv("Bond.csv", header = TRUE)
     Bond <- Bond[c(625:688),2]
@@ -120,7 +120,7 @@ server = function(input, output) {
       delta_Interest[i-1] <- Interest[i] - Interest[i-1]
     }
     
-    set.seed(1)
+    set.seed(1234)
     Sigma <- cov(data.frame(delta_Bond,delta_Interest))
     Sigma <- as.matrix(Sigma)
     Delta_S <- Multi_Normal(matrix(c(0,0),ncol=1), Sigma)
