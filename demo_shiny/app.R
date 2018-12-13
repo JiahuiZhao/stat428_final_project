@@ -1,6 +1,7 @@
 library(matrixcalc)
 library(shiny)
 library(coda)
+library(stringr)
 
 ui = fluidPage(
   titlePanel("MCMC Financial Variance Reduction"),
@@ -21,7 +22,7 @@ ui = fluidPage(
     mainPanel(
       tabsetPanel(
         tabPanel("Delta_S", plotOutput("plot")),
-        tabPanel("Probability & Variance Table", tableOutput("table"), h4("It may take a while to show up the table."))
+        tabPanel("Probability & Variance Factor Table", tableOutput("table"), h4("It may take a while to show up the table."))
       )
     )))
 
@@ -53,8 +54,11 @@ server = function(input, output) {
 
    variance_general <- General(a0, a, A, Sigma, x_var)
    variance_is <- IS(a0, a, A, Sigma, x_var)
+   variance_is <-  c(variance_is[1], variance_general[2]/variance_is[2])
    variance_cv <- CV(a0, a, A, Sigma, x_var)
+   variance_is <-  c(variance_cv[1], variance_general[2]/variance_cv[2])
    variance_ss <- SS(a0, a, A, Sigma, x_var)
+   variance_ss <-  c(variance_ss[1], variance_general[2]/variance_ss[2])
    
    variance <-  rbind(variance_general, variance_is, variance_cv, variance_ss)
    colnames(variance) <-  c("Probability", "Variance")
