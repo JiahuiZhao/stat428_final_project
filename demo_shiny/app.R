@@ -53,10 +53,14 @@ server = function(input, output) {
     x_var <- VAR(a0, a, A, Sigma, Delta_S, percentile)
 
    variance_general <- General(a0, a, A, Sigma, x_var)
+   variance_general <-  c(variance_general[1], variance_general[2]/variance_general[2])
+   
    variance_is <- IS(a0, a, A, Sigma, x_var)
    variance_is <-  c(variance_is[1], variance_general[2]/variance_is[2])
+   
    variance_cv <- CV(a0, a, A, Sigma, x_var)
-   variance_is <-  c(variance_cv[1], variance_general[2]/variance_cv[2])
+   variance_cv <-  c(variance_cv[1], variance_general[2]/variance_cv[2])
+   
    variance_ss <- SS(a0, a, A, Sigma, x_var)
    variance_ss <-  c(variance_ss[1], variance_general[2]/variance_ss[2])
    
