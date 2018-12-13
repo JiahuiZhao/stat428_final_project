@@ -36,6 +36,8 @@ server = function(input, output) {
     a = matrix(as.numeric(str_split(input$capitala, pattern = ",")[[1]]), 2)
     a0 = as.numeric(input$capitala0)
 
+    set.seed(1)
+    
     Interest <- read.csv("Interest.csv", header = TRUE)
     Bond <- read.csv("Bond.csv", header = TRUE)
     Bond <- Bond[c(625:688),2]
@@ -49,26 +51,30 @@ server = function(input, output) {
    
     Sigma <- cov(data.frame(delta_Bond,delta_Interest))
     Sigma <- as.matrix(Sigma)
+    
+    set.seed(1)
 
     Delta_S <- Multi_Normal(matrix(c(0,0),ncol=1), Sigma)
 
     x_var <- VAR(a0, a, A, Sigma, Delta_S, percentile)
 
-   variance_general <- General(a0, a, A, Sigma, x_var)
-   variance_general1 <-  c(round(variance_general[1], 4), round(variance_general[2]/variance_general[2],0))
+   variance_general <- CV(a0, a, A, Sigma, x_var)[3:4]
+   variance_general1 <-  c(round(variance_general[1], 4), round(variance_general[2],4),round(variance_general[2]/variance_general[2],4))
    
    variance_is <- IS(a0, a, A, Sigma, x_var)
-   variance_is <-  c(round(variance_is[1],4), round(variance_general[2]/variance_is[2],4))
+   variance_is <-  c(round(variance_is[1],4), round(variance_is[2],4),round(variance_general[2]/variance_is[2],4))
    
-   variance_cv <- CV(a0, a, A, Sigma, x_var)
-   variance_cv <-  c(round(variance_cv[1],4), round(variance_general[2]/variance_cv[2],4))
+   variance_cv <- CV(a0, a, A, Sigma, x_var)[1:2]
+   variance_cv <-  c(round(variance_cv[1],4), round(variance_cv[2],4),round(variance_general[2]/variance_cv[2],4))
    
    variance_ss <- SS(a0, a, A, Sigma, x_var)
-   variance_ss <-  c(round(variance_ss[1],4), round(variance_general[2]/variance_ss[2],4))
+   variance_ss <-  c(round(variance_ss[1],4), round(variance_ss[2],4),round(variance_general[2]/variance_ss[2],4))
    
    variance <-  rbind(variance_general1, variance_cv, variance_is, variance_ss)
-   colnames(variance) <-  c("Probability", "Variance Factor")
+
    variance.table <-  cbind(c("General" ,"Control Variates", "Importance Sampling","Stratified Sampling"), variance)
+   
+   colnames(variance.table) <-  c("Variance Deduction Method","Probability", "Variance","Variance Deduction Factor")
    
    return(variance.table)
   })
@@ -78,6 +84,7 @@ server = function(input, output) {
     a = matrix(as.numeric(str_split(input$capitala, pattern = ",")[[1]]), 2)
     a0 = as.numeric(input$capitala0)
     
+    set.seed(1)
     Interest <- read.csv("Interest.csv", header = TRUE)
     Bond <- read.csv("Bond.csv", header = TRUE)
     Bond <- Bond[c(625:688),2]
@@ -89,6 +96,7 @@ server = function(input, output) {
       delta_Interest[i-1] <- Interest[i] - Interest[i-1]
     }
     
+    set.seed(1)
     Sigma <- cov(data.frame(delta_Bond,delta_Interest))
     Sigma <- as.matrix(Sigma)
     Delta_S <- Multi_Normal(matrix(c(0,0),ncol=1), Sigma)
@@ -100,6 +108,7 @@ server = function(input, output) {
     a = matrix(as.numeric(str_split(input$capitala, pattern = ",")[[1]]), 2)
     a0 = as.numeric(input$capitala0)
     
+    set.seed(1)
     Interest <- read.csv("Interest.csv", header = TRUE)
     Bond <- read.csv("Bond.csv", header = TRUE)
     Bond <- Bond[c(625:688),2]
@@ -111,6 +120,7 @@ server = function(input, output) {
       delta_Interest[i-1] <- Interest[i] - Interest[i-1]
     }
     
+    set.seed(1)
     Sigma <- cov(data.frame(delta_Bond,delta_Interest))
     Sigma <- as.matrix(Sigma)
     Delta_S <- Multi_Normal(matrix(c(0,0),ncol=1), Sigma)
