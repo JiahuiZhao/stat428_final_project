@@ -1,8 +1,20 @@
-library(matrixcalc)
-library(shiny)
-library(coda)
-library(stringr)
-library(ggplot2)
+
+##########################
+# Package check
+##########################
+
+pkg_list = c('knitr', 'kableExtra', 'magrittr', 'bookdown', 'matrixcalc', 'matlib', 'MASS', 'stringr', 'coda','ggplot2')
+to_install_pkgs = pkg_list[!(pkg_list %in% installed.packages()[,"Package"])]
+if(length(to_install_pkgs)) {
+  install.packages(to_install_pkgs, repos = "https://cloud.r-project.org")
+}
+sapply(pkg_list, require, character.only = TRUE)
+
+
+##########################
+# Shiny Application
+##########################
+
 
 ui = fluidPage(
   titlePanel("Variance Reduction for Estimating VAR with MCMC"),

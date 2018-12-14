@@ -22,7 +22,7 @@ knitr::opts_chunk$set(
   # center images
   fig.align = "center", 
   # to display code set to True
-  echo = TRUE,
+  echo = FALSE,
   # suppress message
   message = FALSE,
   # supress warning
@@ -47,330 +47,185 @@ sapply(pkg_list, require, character.only = TRUE)
 \newpage
 
 # Introduction
-It is important for banks and insurance companies to estimate and manage the risk to avoid the situation when there is capital deficiency. Value at Risk (VAR) is a measure for the risk of investments loss, which estimates how much value a investment portfolio might lose at given market conditions. Two types of problems are often encompassed by acompany when measuring the risk.The first one is how the value of market risk will change according to risk factors (e.g. interest rate). The other one is what in fluence the risk will pose on the value of a portfolio. This project is intended to develope a model to revalue the portfolio with the interest rate by starting from the simple linear assumption to quadratic model and make use of revalued portfolio to estimate Value at Risk(VAR). The technique problem we are facing is how to make our estimate much more precise,which means we should do variance reduction for our estimator of VAR.
+Risk management is always an important task in financial field. Financial institutions have to pay attention to the possible risk they will carry on, especially the potential loss and the chances such loss will happen. It is important for banks and insurance companies to estimate and manage the risk to avoid the situation when there is capital deficiency. Therefore, we need to etstimate the capital requirement accurately according the market risk. Value at Risk (VAR) is a measure for the risk of investments loss, which estimates how much value a investment portfolio might lose at given market conditions. 
 
-**About the data**
+Two types of problems are often encompassed by a company when measuring the risk. The first one is how the value of market risk will change according to risk factors (e.g. interest rate). The other one is what in fluence the risk will pose on the value of a portfolio. 
 
-# Methods 
+This project is intended to develope a model to revalue the portfolio with the interest rate by starting from the simple linear assumption to quadratic model and make use of revalued portfolio to estimate Value at Risk(VAR). The technique problem we are facing is how to make our estimate much more precise,which means we should do variance reduction for our estimator of VAR. 
 
-##### part 1
-$$\Delta V 	\approx \frac{\partial V}{\partial t}\Delta t + \delta^{\top}\Delta S + \frac{1}{2}\Delta S^{\top}\Gamma \Delta S$$,                (9.2)
-  
+In this project, we applied various methods from the class to improve our estimation accuracy and obtain a more accuracy estimation of the VAR.
+
+We can build the model by following steps.
+
+First, we assume the market risk follows multivariate normal distribution with the population mean equals to 0.
+We denote the vector of market prices and rates as $S$, $S \sim \mathcal{N}(0, \Sigma_S)$ and $\Sigma_S$ is the covariance matrix of $\Delta S$. 
+$$\Delta t = \texttt{risk-measurement horizon}$$
+
+$$\Delta S = \texttt{change in S over interval } \Delta t$$
+
+
+Then we will obtain the variance from the history data. To generate random variables following the expected distribution, we use MCMC to sample the objective distribution. After generating random variables with the multivariate normal distribution by MCMC, we can use this statistics to evaluate the change of the portfolio value in certain time intervals.
+
+Since the $\Delta V$ is linear in $\Delta S$, we can perform linear transformation to sample the random variable $\Delta V$. 
+$$\Delta V = \delta^T \Delta S$$
+
+$\delta^T$ is the linear transformation matrix.
+
+
+Then by relevant financial knowledge, we can set up the linear transformation as following, which is also called Delta-Gamma Approximation.
+
+$$\Delta V \approx \frac{\partial V}{\partial t}\Delta t + \delta^{\top}\Delta S + \frac{1}{2}\Delta S^{\top}\Gamma \Delta S$$
 where
+$$\delta_{i} = \frac{\partial V}{\partial S_{i}}, \Gamma_{ij}=\frac{\partial ^{2}V}{\partial S_{i} \partial S_{j}}$$      
+Without considering the market price changes and other details, the loss over such interval will be the negative of the change of the portfolio value.
+ 
+Then our task is find the value of L in a certain quantile which represents the loss under certain possibility.
+$$L = \texttt{loss over interval }\Delta t$$
+
+
+Then our estimator which is the VAR should be obtained by getting the percentile of the portfolio's loss distribution.
+$$1 - F_L(x_p) = P(L>x_p)$$
+
+In our project, we set the significant level to be 0.01 which means our are going to find the value of the loss distribution with the tail of this value is 0.01. 
+
+However, the estimation of loss value may have a large variance. Hence we use several methods related to Mento Carlo to reduce the variance which is the main goal of our project.
+The relevant methods we have learnd form class including importance sampling, stratified sampling, control variable.
+In this project, we will perform each method and compare their efficiency in reducing the variance and improving accuracy.
+
+
+# Method
+In order to estimate the risk, which is $P(L > x)$, we should propose assumptions on the portfolio and the distribution of risk factors.   
+Assumption:  
+1. $$\Delta V 	\approx \frac{\partial V}{\partial t}\Delta t + \delta^{\top}\Delta S + \frac{1}{2}\Delta S^{\top}\Gamma \Delta S$$   
+where  
+$$L = -\Delta V$$
+$$\delta_{i} = \frac{\partial V}{\partial S_{i}}, \Gamma_{ij}=\frac{\partial ^{2}V}{\partial S_{i} \partial S_{j}}$$   
+
+2. $$\Delta S \sim N(\mu, \theta)$$   
+
+For the first assumptions, it explains the approxiamtely quadractic relation betwee risk factor and the loss function, which is called Delta-Gamma Approximation. This is format is deduced from the Taylor Expansion. The another assumption is a basic idea behind the model, which can explain most situation of the risk factor situation. 
+
+Therefore, in our model, the random variable is the $\Delta S$, which is multi-normal distribution. We make use of MCMC method to generate it. Then we utilize the Delta_gamma Method to to revalue the portforlio. With the loss function, bootstrap can be used to estimate the VAR at given risk level. Lastly, to reduce the variance of estimating the risk of the estimated VAR, we realize three mathods, which are Control Variate, Importance Sampling, Stratified Sampling to estimate the risk and the variance.
+
+# MCMC
+Since there could be a huge scope of influencial factors to the market risk, the variable $\Delta S$ could be with m dimensional multivariate normal distribution. However, in our project to simplify the question, we just pick 2 dimensions.
+\[\Delta S = (X, Y) \sim \mathcal{N} (0, \Sigma_S) = \mathcal{N} \big(\begin{bmatrix} \mu_1 \\ \mu_2\end{bmatrix}, \begin{bmatrix} \sigma_1^2 & \rho \sigma_1 \sigma_2
+\\ \rho \sigma_1 \sigma_2 &\sigma_2^2  \end{bmatrix} \big)\]
+
+Then the conditional distribution is:
+\[ (X|Y= y) \sim \mathcal{N} \big(\mu_1 + \rho \frac{\sigma_1}{\sigma_2} (y-\mu_2), (1-\rho^2)\sigma_1^2\big) \]
+
+\[ (Y|X= x) \sim \mathcal{N} \big(\mu_2 + \rho \frac{\sigma_2}{\sigma_1} (x-\mu_1), (1-\rho^2)\sigma_2^2\big) \]
+
+Then we are going to generate X and Y by the conditional distribution using gibbs sampling.
+
+# VAR Estimate
+In order to estimate the VAR value, we can revalue the Loss function based on the generated $\Delta S$, which is   
+$$\Delta V 	\approx \frac{\partial V}{\partial t}\Delta t + \delta^{\top}\Delta S + \frac{1}{2}\Delta S^{\top}\Gamma \Delta S$$   
+
+After generate the Loss function value, we make use of Bootstrap to estimate the quantile of the Loss function with given risk level. The Bootstrp algorithm is below:  
+
+# Variance Reduction Techniques
+There are tree methods we use to estimate the estimated VAR's risk. They are Control Variate, Importance Sampling, Stratified Sampling. 
+
+## Control Variate
+
+The method of control variates is among the most effective and broadly applicable techniques for improving the efficiency of Monte Carlo simulation. It exploits information about the errors in estimates of known quantities to reduce the error in an estimate of an unknown quantity.
   
-$$\delta_{i} = \frac{\partial V}{\partial S_{i}}, \Gamma_{ij}=\frac{\partial ^{2}V}{\partial S_{i} \partial S_{j}}$$            
+Suppose that the pairs $(X_i,Y_i\ ),i=1,\ 2,\ 3,\ \ldots,\ n$ are i.i.d. and that the expectation E(X) of the $X_i$ is known. Then for any fixed b we can calculate
 
-$\Delta S = CZ$ with $CC^{\top} = \sum_{S}$
-$L = -\Delta V$
+$$Y_i\ (b)=Y_i-b(X_i-E(X))$$
 
-##### Part 2
-$\Delta S \sim N(0, \sum_{S})$
-$a = -\frac{\partial V}{\partial t} \Delta t$
-$$L \approx a - (C^{\top} \delta)^{\top} - \frac{1}{2}Z^{\top}(C^{\top}\Gamma C)Z$$ (9.3)
-$$-\frac{1}{2}\tilde{C^{\top}}\Gamma \tilde{C^{\top}} = U \Lambda U^{\top}$$
+from the ith replication and then compute the sample mean
 
-set $C = \tilde{C} U$, $CC^{\top} = \tilde{C}UU^{\top} \tilde{C^{\top}} = \sum_{S}$
-$$-\frac{1}{2}C^{\top}\Gamma C = -\frac{1}{2}U^{\top}(\tilde{C}\Gamma\tilde{C})U = U^{top}(U\Lambda U^{\top})U = \Lambda$$
+$$\bar{Y}\left(b\right)=\bar{Y}-b\left(\bar{X}-E\left(X\right)\right)=\frac{1}{n}\sum_{i=1}^{n}{(Y_i-b(X_i-E(X)))}$$
 
-$b = -C^{\top}\delta$
+As an estimator of E(Y), the control variate estimator is unbiased. Each $Y_i\left(b\right)$ has variance
+
+$$Var\left[Y_i\left(b\right)\right]={\sigma_Y}^2-2b\sigma_X\sigma_Y+b^2{\sigma_X}^2$$
+
+The optimal coefficient $b^\ast$ minimizes the variance and is given by
+
+$$b^\ast=Cov(X,Y)Var[X]$$
+
+In our project, we generate ???S as $CZ$ with $Z\ ~\ N(0,\ I)$. Then let $\left(L_i,Q_i\ \right),i=1,\ 2,\ 3,\ \ldots,\ n$, be the values recorded on n independent replications. A control variate estimator of P(L > x) is given by
+
+$$1-\widehat{F_L^{CV}}\left(x\right)=\frac{1}{n}\sum_{i=1}^{n}1\left\{L_i>x\right\}-\hat{\beta}(\frac{1}{n}\sum_{i=1}^{n}1\left\{Q_i>x\right\}-P(Q>x))$$
+
+An estimate $\hat{\beta}$ of the variance-minimizing coefficient can be computed from the $\left(L_i,Q_i\ \right)$ as explained before.
+ 
+## Importance Sampling
+
+In order to realize the Importance Sampling, we should make use of the Delta-Gamma Method and its diagonalized format and the most important thing is to find the importance sampling function. In GHS paper, it gives an optimal importance sampling for estimating the risk. We use its method to realize our algorithm.
+
+The below this the mathematical deduction for the Importance Sampling Method.
+
+
 $$L \approx a + b^{\top} Z + Z^{\top}\Lambda Z$$
-$$= a+ \sum_{j = 1}^{m}(b_j Z_j + \lambda_{j}Z_j^{2} \equiv Q)$$    (9.4)
+$$= a+ \sum_{j = 1}^{m}(b_j Z_j + \lambda_{j}Z_j^{2} \equiv Q)$$    
 
-##### Part 3
+In GHS, the importance function shall obey the following rule. The importance function is proportional to the multi-normal distribution, which can chieve a great effect of variance reduction.
 $\frac{\partial P_{\theta}}{\partial P} = e^{\theta Q - \phi(\theta)}$
-$$\mathcal{P}(Q > x) = E_{\theta}[(\frac{\partial P}{\partial P_{\theta}})\mathcal{1}(Q>x)] = E_{\theta}[e^{-\theta Q + \phi(\theta)}\mathcal{1}(Q >x)]$$
-$Z \sim P_{\theta}$, $Z \sim N(\mu(\theta), \sum(\theta))$, $\mu_{j}(\theta) = \frac{\theta b_{j}}{1 - 2\lambda_{j}\theta}$, $\sigma_{j}^{2}(\theta) = \frac{1}{1-2\lambda_{j}\theta}$
-$2\lambda \theta < 1$, so that $\phi(\theta) < \infty$
-$\frac{\partial P_{\theta}}{\partial \mathcal{P}} = e^{\theta Q- \phi(\theta)}$
-$\mathcal{P}(Q>x) = \mathcal{E}[(\frac{\partial P}{\partial P_{\theta}})\mathcal{1}(\theta > x)] = E_{\theta}[e^{-\theta Q}\mathcal{Q>x}]$
-$Z \sim \mathcal{P}_{\theta}$, $Z \sim N(\mu(\theta), \sum(\theta))$, $\mu_j (\theta)  = \frac{\theta b_{j}}{1-2\lambda_{j}\theta}$, $\sigma_{j}^{2}(\theta) = \frac{1}{1-2\lambda_{j}\theta}$
-$2\lambda_{j}\theta < 1$, so that $2P(\theta) < \infty$
-$\phi(\theta) \equiv a\theta + \sum_{j = 1}^{m}\phi_{j}(\theta) = a\theta + \frac{1}{2}\sum\sum_{j = 1}^{m}(\frac{\theta ^{2}b_{j}^{2}}{1-2\theta\lambda_{j}} - log(1-2\theta\lambda_{j}))$
-$$\mathcal{P}(L > x) = \mathcal{E}[e^{-\theta Q + \phi(\theta)}\mathcal{1}(L > x)]$$
+
+The solution for the above euation is the distribution $Z \sim N(\mu_{\theta}, \Sigma_{\theta})$, where $\Sigma(\theta)$ is diagnostic matrix. Therefore, we can get the following equation with diagonalization format of Delta_Gamma Method.  
 
 
-```{r multi_normal}
-# Multinormal Distribution
-Multi_Normal <- function(u, Sigma){
-  N <- 5000
-  burn <- 3000
-  X <- matrix(0, N, 2)
-  
-  rho <- Sigma[1,2]
-  mu1 <- u[1,1]
-  mu2 <- u[2,1]
-  sigma1 <- Sigma[1,1] 
-  sigma2 <- Sigma[2,2]
-  s1 <- sqrt(1 - rho^2) * sigma1
-  s2 <- sqrt(1- rho^2) * sigma2
-  
-  X[1,] <- c(mu1, mu2)
-  
-  for(i in 2:N){
-    x2 <- X[i-1,2]
-    m1 <- mu1 + rho * (x2 -mu2) * sigma1/sigma2
-    X[i,1] <- rnorm(1, m1, s1)
-    x1 <- X[i,1]
-    m2 <- mu2 + rho * (x1 -mu1) * sigma2/sigma1
-    X[i,2] <- rnorm(1, m2, s2)
-  }
-  
-  b <- burn+1
-  x <- X[b:N,]
-  return(x)
-}
-```
+$$
+\mathcal{P}(Q > x) = E[\mathcal{1}(Q>x)]
+                   = E_{\theta}[(\frac{\partial P}{\partial P_{\theta}}) \mathcal{1}(Q>x)] 
+                   = E_{\theta}[e^{-\theta Q + \phi(\theta)} \mathcal{1}(Q >x)]
+$$
+so that 
+$$\mathcal{P}(L > x) = E[e^{-\theta Q + \phi(\theta)} \mathcal{1}(L > x)]$$
+where
+$$Z \sim P_{\theta}$$
 
-```{r general}
-# General way percentile is p
-VAR <- function(a0, a, A, Sigma,delta_S, percentile){
+The exact distribution of Z is below:  
+$$Z \sim N(\mu(\theta), \Sigma(\theta))$$
+$$\mu_{j}(\theta) = \frac{\theta b_{j}}{1 - 2\lambda_{j}\theta}$$
+$$\sigma_{j}^{2}(\theta) = \frac{1}{1-2\lambda_{j}\theta}$$
+Besides, there are some resrtictions for the parameter. $2\lambda \theta < 1$, so that $\phi(\theta) < \infty$
 
-  L <- a0 + delta_S %*% a + 0.5* rowSums(delta_S %*% A * delta_S)
-  L <- -L
-  L <- sort(L)
-  
-  p_index <- ceiling(length(L) * percentile) 
-  x_quantile <- L[length(L) - p_index]
-  return( x_quantile)
-}
-```
+For $e^{-\theta Q + \phi(\theta)}$, we have following expression  
+$$\phi(\theta) \equiv a\theta + \sum_{j = 1}^{m}\phi_{j}(\theta) = a\theta + \frac{1}{2}\sum\sum_{j = 1}^{m}(\frac{\theta ^{2}b_{j}^{2}}{1-2\theta\lambda_{j}} - log(1-2\theta\lambda_{j}))$$
+In order to decide $\theta$, we can make use of the following equation with uniroot function.
 
-```{r is}
-# Importance Sampling
-phi <- function(theta,a, b, lambda){
-  phi_value <- a * theta + 0.5 *
-    sum((theta^2 * b^2)/(1 - 2 * theta * lambda) - log(1 - 2 * theta * lambda))
-  return(phi_value)
-}
+$$
+\phi^{'}(\theta_x) = x
+$$
 
-IS <- function(a0, a, A, Sigma, x){
-  N <- 1000
-  loss <- numeric(N)
-  for(i in 1:N){
-  # get lambda, b
-  CC <- eigen(Sigma)
-  CC <- CC$vectors %*% diag(sqrt(CC$values), nrow=2, ncol=2)
-  matrix_trans <- t(CC) %*% A %*% CC
-  C <- eigen( -0.5 * matrix_trans)
-  
-  lambda <- C$values
-  
-  C <- CC %*% C$vectors
-  
-  b <- -t(C) %*% a
 
-  #IS distribution
-  theta <- 0.25
-  #theta <- uniroot(phi, a=a, b=b, lambda= lambda, lower = -100, upper = 100)
-  
-  mu_new <- theta * b /(1- 2 * lambda *theta) 
-  sigma_new <- 1/(1 - 2 * theta * lambda )
-  
-  # get Z, S
-  u <- matrix(mu_new,nrow = 2, ncol = 1)
-  sig <- diag(sigma_new, nrow = 2, ncol = 2)
-              
-  Z <- mvrnorm(3000, u, sig)
-  delta_S <- Z %*% t(C)
-  
-  # estimate Q, L
-  Q <- -a0 + Z %*% b + rowSums(lambda * Z^2)
+## Stratified Sampling
 
-  L <- a0 + delta_S %*% a + 0.5 *rowSums(delta_S %*% A * delta_S)
-  L <- -L
-  
-  phi <- -a0 * theta + 0.5 * sum( (theta^2 * b^2)/(1 - 2* theta * lambda) - log(1- 2*theta * lambda) )
-  loss[i] <-  mean( exp(theta * Q + phi) *( L > x) )
-  }
-  
-  prob <- mean(loss)
-  var <- var(loss)
-  
-  return(c(prob, var))
-}
-```
-
-```{r ss}
-# Stratified Sampling
-SS <- function(a0, a, A, Sigma, x){
-  N <- 1000
-  loss <- numeric(N)
-  
-  # get lambda, b
-  CC <- eigen(Sigma)
-  CC <- CC$vectors %*% diag(sqrt(CC$values), nrow=2, ncol=2)
-  matrix_trans <- t(CC) %*% A %*% CC
-  C <- eigen( -0.5 * matrix_trans)
-  
-  lambda <- C$values
-  
-  C <- CC %*% C$vectors
-  
-  b <- -t(C) %*% a
-  
-  #IS distribution
-  theta <- 0.01
-  mu_new <- theta * b /(1- 2 * lambda *theta) 
-  sigma_new <- 1/(1 - 2 * theta * lambda )
-  
-  u <- matrix(mu_new,nrow = 2, ncol = 1)
-  sig <- diag(sigma_new, nrow = 2, ncol = 2)
-  
-  for(i in 1:N){
-    # get Z, S
-    #Z <- mvrnorm(3000, u, sig)
-    Z <- Multi_Normal(u, sig)
-    delta_S <- Z %*% t(C)
-    
-    # estimate Q, L
-    Q <- -a0 + Z %*% b + rowSums(lambda * Z^2)
-    Q_sort <- sort(Q)
-    
-    # strata 1
-    point1 <- quantile(Q, 0.2)
-    Z_1 <- Z[which(Q <= point1),]
-    delta_S_1 <- Z_1 %*% t(C)
-    
-    # strata 2
-    point2 <- quantile(Q, 0.5)
-    Z_2 <- Z[which(Q >point1 & Q <= point2),]
-    delta_S_2 <- Z_2 %*% t(C)
-    
-    # strata 3
-    point3 <- quantile(Q, 0.8)
-    Z_3 <- Z[which(Q > point2 & Q <= point3),]
-    delta_S_3 <- Z_3 %*% t(C)
-    
-    # strata 4
-    Z_4 <- Z[which(Q >point3),]
-    delta_S_4 <- Z_4 %*% t(C)
-    
-    phi <- -a0 * theta + 0.5 * sum( (theta^2 * b^2)/(1 - 2* theta * lambda) - log(1- 2*theta * lambda) )
-    
-    Q1 <- -a0 + Z_1 %*% b + rowSums(lambda * Z_1^2)
-    L1 <- -(a0 + delta_S_1 %*% a + 0.5 *rowSums(delta_S_1 %*% A * delta_S_1))
-    loss1 <- mean(exp(theta * Q1 + phi) * (L1 >x))
-    
-    Q2 <--a0 + Z_2 %*% b + rowSums(lambda * Z_2^2)
-    L2 <- -(a0 + delta_S_2 %*% a + 0.5 *rowSums(delta_S_2 %*% A * delta_S_2))
-    loss2 <- mean(exp(theta * Q2 + phi) * (L2 >x))
-    
-    Q3 <--a0 + Z_3 %*% b + rowSums(lambda * Z_3^2)
-    L3 <- -(a0 + delta_S_3 %*% a + 0.5 *rowSums(delta_S_3 %*% A * delta_S_3))
-    loss3 <- mean(exp(theta * Q3 + phi) * (L3 >x))
-    
-    Q4 <--a0 + Z_4 %*% b + rowSums(lambda * Z_4^2)
-    L4 <- -(a0 + delta_S_4 %*% a + 0.5 *rowSums(delta_S_4 %*% A * delta_S_4))
-    loss4 <- mean(exp(theta * Q4 + phi) * (L4 >x))
-    
-    loss[i] <- (loss1+loss2+loss3+loss4)/4
-  }
-  
-  prob <- mean(loss)
-  var <- var(loss)
-  
-  return(c(prob,var))
-  
-}
-```
-
-```{r cv}
-Controlvariate <- function (L, Q, x) {
-  # input: (Li, Qi), x
-  # output: estimation of P(L>x), variance of L after/before implement control variate
-  # Using bootstrap method to estimate P(Q > x)
-  
-  ProbQ <- mean(rep((sample(Q, size = length(Q), replace = TRUE) > x), 100000))
-  beta <- cov(L, Q)/var(Q)
-  ProbL <- mean(L > x) - beta * (mean(Q > x) - ProbQ)
-  varL <- var(L) - 2*beta*sd(L)*sd(Q)*cor(L, Q) + beta^2*var(Q)
-  result <- as.matrix(c(ProbL, varL, mean(L > x),var(L)))
-  rownames(result) <- c("Est of P(L>x) (quantile of x)", "variance after CV", "general prob", "variance before CV")
-  return(c(ProbL, varL, mean(L > x), var(L)))
-}
-
-CV <- function(a0, a, A, Sigma, x){
-  
-  # get lambda, b
-  CC <- svd(Sigma)
-  CC <- CC$u %*% diag(sqrt(CC$d), nrow=2, ncol=2)
-  matrix_trans <- -0.5 * t(CC) %*% A %*% CC
-  C <- svd(matrix_trans)
-  lambda <- C$d
-  C <- CC %*% C$u
-  
-  b <- -t(C) %*% a
-  
-  u <- matrix(0,nrow = 2, ncol = 1)
-  sig <- diag(1, nrow = 2, ncol = 2)
-  Z <- mvrnorm(3000, u, sig)
-  delts_S <- Z %*% t(C)
-  
-  Q <- -a0 + Z %*% b + rowSums(lambda * Z^2)
-  
-  L <- a0 + delts_S %*% a + 0.5 *rowSums(delts_S %*% A * delts_S)
-  L <- -L
-  return(Controlvariate(L, Q, x))
-} 
-```
-
-```{r data_process_input}
-# Data Precess
-Interest <- read.csv("Interest.csv", header = TRUE)
-Bond <- read.csv("Bond.csv", header = TRUE)
-
-Bond <- Bond[c(625:688),2]
-Interest <- Interest[c(745:808),2]
-
-delta_Bond <- numeric(length(Bond))
-delta_Interest <- numeric(length(Interest))
-
-for(i in 2 : length(Bond) ){
-  delta_Bond[i-1] <- Bond[i] - Bond[i-1]
-  delta_Interest[i-1] <- Interest[i] - Interest[i-1]
-  
-}
-
-# Input parameter
-Sigma <- cov(data.frame(delta_Bond,delta_Interest))
-Sigma <- as.matrix(Sigma)
-a0 <- 0
-a <- matrix(c(1,1), ncol = 1)
-A <- matrix(c(1,0,0,1), ncol = 2, nrow = 2, byrow = TRUE)
-percentile <- 0.9
-Delta_S <- Multi_Normal(matrix(c(0,0),ncol=1), Sigma)
-# Var
-x_var <- VAR(a0, a, A, Sigma, Delta_S, percentile)
-```
-
-```{r example}
-# Estimate precision and variance
-variance_general <- CV(a0, a, A, Sigma, x_var)[3:4]
-
-variance_is <- IS(a0, a, A, Sigma, x_var) 
-
-variance_ss <- SS(a0, a, A, Sigma, x_var) 
-
-variance_cv <- CV(a0, a, A, Sigma, x_var)[1:2]
-```
-
-<!-- Force a new page for references -->
-\newpage
+The Stratified Sampling Method is realized based on Importance Sampling with applying it on each strata. So it's how to decide the best strata that matters in this problem
 
 # Result
+
+
+
 # Discussion
+From the result, we can discover by all the methods, the estimated probability is almost the same. Therefore there is bias in estimating the risk. But from the risk factor column, we can find the variance Importance Sampling and Stratified Sampling is much larger that that of other methods, which shows that we have realize our target to reduce the variance of estimating risk of VAR and it's significant. To compare the effect, we can find the Importance Sampling and Stratified Sampling are the best. Actually, Stratified Sampling shall be much better that Importance Sampling. Since we just choose the few points to cut the region so that the effect is not so significant.
 
-<!-- Force a new page for references -->
-\newpage
+Although we have a 
 
-# Conclusion
+
 # Appendix
 
-<!-- Force a new page for references -->
-\newpage
+```{r shiny-plot, out.width = "500px", fig.cap = "Risk Factor", fig.pos = 'H'}
+knitr::include_graphics("images/plot.png")
+```
 
-# Bibliography
+```{r shiny-scatter-plot, out.width = "500px", fig.cap="Risk Factor Scatterplot", fig.pos = 'H'}
+knitr::include_graphics("images/scatterplot.png")
+```
 
-delete the below code when finish
-<!-- Force a new page for references -->
-\newpage
+```{r result-table, out.width = "700px", fig.cap = "Probability and Variance Factor Table", fig.pos = 'H'}
+knitr::include_graphics("images/table.png")
+```
+
+# References
+
+## Bibliography
+
+*[@MonteCarlo]
+*[@VarianceReduction]
