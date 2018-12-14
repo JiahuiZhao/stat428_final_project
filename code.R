@@ -253,8 +253,8 @@ CV <- function(a0, a, A, Sigma, x){
 ##########################
 
 
-Interest <- read.csv("Interest.csv", header = TRUE)
-Bond <- read.csv("Bond.csv", header = TRUE)
+Interest <- read.csv("datas/Interest.csv", header = TRUE)
+Bond <- read.csv("datas/Bond.csv", header = TRUE)
 
 Bond <- Bond[c(625:688),2]
 Interest <- Interest[c(745:808),2]
